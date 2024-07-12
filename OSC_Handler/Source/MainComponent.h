@@ -2,6 +2,8 @@
 
 #include <JuceHeader.h>
 
+#include "OSCDemo.h"
+
 //==============================================================================
 /*
     This component lives inside our window, and this is where you should put all
@@ -11,8 +13,8 @@
 class MainComponent
 :
 public juce::Component,
-public juce::OSCReceiver,
-public juce::OSCReceiver::ListenerWithOSCAddress<juce::OSCReceiver::MessageLoopCallback>
+private juce::OSCReceiver,
+private juce::OSCReceiver::ListenerWithOSCAddress<juce::OSCReceiver::RealtimeCallback>
 {
 public:
     //==============================================================================
@@ -23,6 +25,7 @@ public:
     void paint (juce::Graphics&) override;
     void resized() override;
     
+    void oscBundleReceived (const juce::OSCBundle& bundle);
     void oscMessageReceived (const juce::OSCMessage& message) override;
 
 private:
@@ -31,7 +34,9 @@ private:
 
     juce::Slider rotaryKnob;
     
-    juce::OSCReceiver osc_;
+    juce::OSCReceiver osc_; // temp
+    
+    OSCDemo oscDemo_;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
 };
