@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 
 <JUCERPROJECT id="PUJsWe" name="OSC_Handler" projectType="guiapp" useAppConfig="0"
-              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1">
+              addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" displaySplashScreen="1">
   <MAINGROUP id="sksfnR" name="OSC_Handler">
     <GROUP id="{FAE42C1F-5033-8EBF-469A-D5887473EBA2}" name="Source">
       <FILE id="ca9SEM" name="Main.cpp" compile="1" resource="0" file="Source/Main.cpp"/>
