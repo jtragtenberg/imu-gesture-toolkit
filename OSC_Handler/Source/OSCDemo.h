@@ -52,7 +52,7 @@
 
 #include <JuceHeader.h>
 
-#include "MainComponent.h"
+#define MAX_OSC_MESSAGE_LENGTH 4
 
 using namespace juce;
 
@@ -65,9 +65,14 @@ public:
     OSCLogListBox()
     {
         setModel (this);
+        
+        osc_messages_.resize(MAX_OSC_MESSAGE_LENGTH);
     }
 
     ~OSCLogListBox() override = default;
+    
+    // data callback function
+    std::function<void(juce::String, float*)> dataCallback;
 
     //==============================================================================
     int getNumRows() override
@@ -102,18 +107,22 @@ public:
                         + " argument(s)");
         
         // address
-        std::cout << message.getAddressPattern().toString() << std::endl;
+        juce::String address = message.getAddressPattern().toString();
+        
+//        std::cout << address << std::endl;
 
-        if (! message.isEmpty())
+        if (!message.isEmpty())
         {
-            for (auto& arg : message)
+            for (int i = 0; i < message.size(); i++)
             {
-                // data
-                std::cout << addOSCMessageArgument (arg, level + 1) << std::endl;
+                osc_messages_[i] = message[i].getFloat32();
             }
         }
 
         triggerAsyncUpdate();
+        
+        // callback data function
+        dataCallback (address, osc_messages_.data());
     }
 
     //==============================================================================
@@ -202,6 +211,8 @@ private:
 
     //==============================================================================
     StringArray oscLogList;
+    
+    std::vector<float> osc_messages_;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (OSCLogListBox)
 };
@@ -254,6 +265,30 @@ private:
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (OSCSenderDemo)
 };
+
+//OSCSender {
+//
+//}
+//
+//OSCReceiever {
+//    some function
+//}
+//
+//OscHandler {
+//    OSCReceiever {passing that function}
+//    OSCSender
+//}
+//
+//Calibration {
+//
+//}
+//
+//GirominController {
+//    OscHandler {when that function happens = do something with that data}
+//    Calibration
+//}
+
+
 
 //==============================================================================
 class OSCReceiverDemo final : public Component,
@@ -312,6 +347,16 @@ class OSCMonitorDemo final : public Component,
 {
 public:
     //==============================================================================
+    
+    struct GirominOSCData
+    {
+        std::string address_ = "";
+        float osc_message_list_[MAX_OSC_MESSAGE_LENGTH];
+    };
+    std::array<GirominOSCData, 9> giromin_data_;
+    
+    std::unique_ptr<juce::MidiOutput> midiOutputDevice;
+    
     OSCMonitorDemo()
     {
         portNumberLabel.setBounds (10, 18, 130, 25);
@@ -341,12 +386,73 @@ public:
                                                 {
                                                     oscLogListBox.addInvalidOSCPacket (data, dataSize);
                                                 });
+        
+        giromin_data_[0].address_ = "/giromin/26/a/x";
+        giromin_data_[1].address_ = "/giromin/26/a/y";
+        giromin_data_[2].address_ = "/giromin/26/a/z";
+        giromin_data_[3].address_ = "/giromin/26/g/x";
+        giromin_data_[4].address_ = "/giromin/26/g/y";
+        giromin_data_[5].address_ = "/giromin/26/g/z";
+        giromin_data_[6].address_ = "/giromin/26/q";
+        giromin_data_[7].address_ = "/giromin/26/b1";
+        giromin_data_[8].address_ = "/giromin/26/b2";
+        
+        auto midiOutputs = juce::MidiOutput::getAvailableDevices();
+        if (!midiOutputs.isEmpty())
+        {
+            auto midiOutput = midiOutputs[0];
+            midiOutputDevice = juce::MidiOutput::openDevice(midiOutput.identifier);
+            if (midiOutputDevice != nullptr)
+            {
+                DBG("MIDI output device opened: " + midiOutput.name);
+            }
+            else
+            {
+                DBG("Failed to open MIDI output device: " + midiOutput.name);
+            }
+        }
+        else
+        {
+            DBG("No MIDI output devices available.");
+        }
+        
+        float filtered = 0;
+        
+        oscLogListBox.dataCallback = [&] (juce::String address, float* osc_messages)
+        {
+//            std::cout << address << std::endl;
+            for (int i = 0; i < giromin_data_.size(); i++)
+            {
+                if (giromin_data_[i].address_ == address)
+                {
+                    for (int j = 0; j < MAX_OSC_MESSAGE_LENGTH; j++)
+                    {
+                        giromin_data_[i].osc_message_list_[j] = osc_messages[j];
+//                        std::cout << osc_messages[j] << std::endl;
+                    }
+                }
+            }
+            
+//            juce::MidiMessage midiMessage = juce::MidiMessage::noteOn (1, giromin_data_[0].osc_message_list_[0], (juce::uint8) 127);
+            
+            filtered = (1 - 0.9) * giromin_data_[0].osc_message_list_[0] + (0.9 * filtered);
+            
+            int midi_trig = std::clamp(static_cast<int>(std::abs((filtered / 15.3) * 16) * 127), 0, 127);
+            
+            std::cout << midi_trig << std::endl;
+            
+            juce::MidiMessage midiMessage = juce::MidiMessage::controllerEvent (1,
+                                                                                1,
+                                                                                midi_trig);
+            
+            midiOutputDevice->sendMessageNow (midiMessage);
+        };
     }
 
 private:
     //==============================================================================
     Label portNumberLabel    { {}, "UDP Port Number: " };
-    Label portNumberField    { {}, "9002" };
+    Label portNumberField    { {}, "1333" };
     TextButton connectButton { "Connect" };
     TextButton clearButton   { "Clear" };
     Label connectionStatusLabel;
@@ -354,7 +460,7 @@ private:
     OSCLogListBox oscLogListBox;
     OSCReceiver oscReceiver;
 
-    int currentPortNumber = -1;
+    int currentPortNumber = 1333;
 
     //==============================================================================
     void connectButtonClicked()
