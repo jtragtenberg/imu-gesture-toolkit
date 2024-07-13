@@ -54,6 +54,38 @@
 
 using namespace juce;
 
+struct GirominMathUtils
+{
+    /**
+        NOTE: because these methods are 'static', they can be used ANYWHERE in the codebase.
+            
+        To USE: GirominMathUtils::'method_name' (p1, ... pN);
+     
+        e.g. float filtered = GirominMathUtils::(in, filtered_val, filtering_amount);
+    */
+    
+    // EMA Filter
+    static float filterEMA (float inputValue, float filteredValue, float filteringAmount)
+    {
+        return ((1 - filteringAmount) * inputValue) + (filteringAmount * filteredValue);
+    }
+    
+    // SCALE
+    static float scale (float value, float inMin, float inMax, float outMin, float outMax)
+    {
+        return outMin + (outMax - outMin) * (value - inMin) / (inMax - inMin);
+    }
+    
+    // SCALE & CLAMP
+    static float scaleAndClamp (float value, float inMin, float inMax, float outMin, float outMax)
+    {
+        if (value < inMin) value = inMin;
+        if (value > inMax) value = inMax;
+
+        return scale (value, inMin, inMax, outMin, outMax);
+    }
+};
+
 class GirominData
 {
 public:
@@ -149,7 +181,7 @@ struct GirominController
         size_t start = addr.find ("/", 1);
         size_t next = addr.find ("/", start + 1);
         int id = std::stoi (addr.substr (start + 1, next - start - 1)); // ignore warning, read comment below
-        int id_index = 0; // TODO: THIS IS TEMP - find out how many giromins, then: 'id - 25' instead
+        int id_index = 0; // TODO: THIS IS TEMP - find out how many giromins, then: 'id - #MAX_NUM_GIROMINS' instead
         
         start = next;
         next = addr.find ("/", start + 1);
