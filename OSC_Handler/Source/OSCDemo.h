@@ -378,6 +378,7 @@ public:
     
     OSCMonitorDemo()
     {
+        //GUI
         portNumberLabel.setBounds (10, 18, 130, 25);
         addAndMakeVisible (portNumberLabel);
 
@@ -399,6 +400,19 @@ public:
 
         oscLogListBox.setBounds (0, 60, 700, 340);
         addAndMakeVisible (oscLogListBox);
+        
+        addAndMakeVisible (receiverLabel);
+        receiverLabel.attachToComponent (&rotaryKnob, false);
+
+        rotaryKnob.setRange (-1.0, 1.0);
+        rotaryKnob.setSliderStyle (Slider::RotaryVerticalDrag);
+        rotaryKnob.setTextBoxStyle (Slider::TextBoxBelow, true, 150, 25);
+        rotaryKnob.setBounds (500, 60, 180, 180);
+        rotaryKnob.setInterceptsMouseClicks (false, false);
+        addAndMakeVisible (rotaryKnob);
+        
+        //OSC IN Setup()
+            //Connect to OSC Server
         if (oscReceiver.connect (currentPortNumber))
                {
 //                   currentPortNumber = 1333;
@@ -411,6 +425,7 @@ public:
                                                     oscLogListBox.addInvalidOSCPacket (data, dataSize);
                                                 });
         
+        //Giromin Controller Setup()
         giromin_data_[0].address_ = "/giromin/26/a/x";
         giromin_data_[1].address_ = "/giromin/26/a/y";
         giromin_data_[2].address_ = "/giromin/26/a/z";
@@ -421,24 +436,7 @@ public:
         giromin_data_[7].address_ = "/giromin/26/b1";
         giromin_data_[8].address_ = "/giromin/26/b2";
         
-        //==============================================================================
-        //==============================================================================
-        
-        addAndMakeVisible (receiverLabel);
-        receiverLabel.attachToComponent (&rotaryKnob, false);
-
-        rotaryKnob.setRange (-1.0, 1.0);
-        rotaryKnob.setSliderStyle (Slider::RotaryVerticalDrag);
-        rotaryKnob.setTextBoxStyle (Slider::TextBoxBelow, true, 150, 25);
-        rotaryKnob.setBounds (500, 60, 180, 180);
-        rotaryKnob.setInterceptsMouseClicks (false, false);
-        addAndMakeVisible (rotaryKnob);
-            
-        
-        //==============================================================================
-        //==============================================================================
-        
-        //Midi Out Setup
+        //Midi Out Setup()
         auto midiOutputs = juce::MidiOutput::getAvailableDevices();
         if (!midiOutputs.isEmpty())
         {
