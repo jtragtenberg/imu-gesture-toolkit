@@ -13,6 +13,7 @@ MainComponent::MainComponent()
     rotaryKnob.setInterceptsMouseClicks (false, false);
 //    addAndMakeVisible (rotaryKnob);
     
+    // Adding the OSC demo component (contains the auto-connect logic)
     addAndMakeVisible (oscDemo_);
 }
 

@@ -218,79 +218,79 @@ private:
 };
 
 //==============================================================================
-class OSCSenderDemo final : public Component
-{
-public:
-    OSCSenderDemo()
-    {
-        addAndMakeVisible (senderLabel);
-        senderLabel.attachToComponent (&rotaryKnob, false);
-
-        rotaryKnob.setRange (0.0, 1.0);
-        rotaryKnob.setSliderStyle (Slider::RotaryVerticalDrag);
-        rotaryKnob.setTextBoxStyle (Slider::TextBoxBelow, true, 150, 25);
-        rotaryKnob.setBounds (50, 50, 180, 180);
-        addAndMakeVisible (rotaryKnob);
-        rotaryKnob.onValueChange = [this]
-        {
-            // create and send an OSC message with an address and a float value:
-            if (! sender1.send ("/juce/rotaryknob", (float) rotaryKnob.getValue()))
-                showConnectionErrorMessage ("Error: could not send OSC message.");
-            if (! sender2.send ("/juce/rotaryknob", (float) rotaryKnob.getValue()))
-                showConnectionErrorMessage ("Error: could not send OSC message.");
-        };
-
-        // specify here where to send OSC messages to: host URL and UDP port number
-        if (! sender1.connect ("127.0.0.1", 9001))
-            showConnectionErrorMessage ("Error: could not connect to UDP port 9001.");
-        if (! sender2.connect ("127.0.0.1", 9002))
-            showConnectionErrorMessage ("Error: could not connect to UDP port 9002.");
-    }
-
-private:
-    //==============================================================================
-    void showConnectionErrorMessage (const String& messageText)
-    {
-        auto options = MessageBoxOptions::makeOptionsOk (MessageBoxIconType::WarningIcon,
-                                                         "Connection error",
-                                                         messageText);
-        messageBox = AlertWindow::showScopedAsync (options, nullptr);
-    }
-
-    //==============================================================================
-    Slider rotaryKnob;
-    OSCSender sender1, sender2;
-    Label senderLabel { {}, "Sender" };
-    ScopedMessageBox messageBox;
-
-    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (OSCSenderDemo)
-};
-
-//OSCSender {
+//class OSCSenderDemo final : public Component
+//{
+//public:
+//    OSCSenderDemo()
+//    {
+//        addAndMakeVisible (senderLabel);
+//        senderLabel.attachToComponent (&rotaryKnob, false);
 //
-//}
+//        rotaryKnob.setRange (0.0, 1.0);
+//        rotaryKnob.setSliderStyle (Slider::RotaryVerticalDrag);
+//        rotaryKnob.setTextBoxStyle (Slider::TextBoxBelow, true, 150, 25);
+//        rotaryKnob.setBounds (50, 50, 180, 180);
+//        addAndMakeVisible (rotaryKnob);
+//        rotaryKnob.onValueChange = [this]
+//        {
+//            // create and send an OSC message with an address and a float value:
+//            if (! sender1.send ("/juce/rotaryknob", (float) rotaryKnob.getValue()))
+//                showConnectionErrorMessage ("Error: could not send OSC message.");
+//            if (! sender2.send ("/juce/rotaryknob", (float) rotaryKnob.getValue()))
+//                showConnectionErrorMessage ("Error: could not send OSC message.");
+//        };
 //
-//OSCReceiever {
-//    some function
-//}
+//        // specify here where to send OSC messages to: host URL and UDP port number
+//        if (! sender1.connect ("127.0.0.1", 9001))
+//            showConnectionErrorMessage ("Error: could not connect to UDP port 9001.");
+//        if (! sender2.connect ("127.0.0.1", 9002))
+//            showConnectionErrorMessage ("Error: could not connect to UDP port 9002.");
+//    }
 //
-//OscHandler {
-//    OSCReceiever {passing that function}
-//    OSCSender
-//}
+//private:
+//    //==============================================================================
+//    void showConnectionErrorMessage (const String& messageText)
+//    {
+//        auto options = MessageBoxOptions::makeOptionsOk (MessageBoxIconType::WarningIcon,
+//                                                         "Connection error",
+//                                                         messageText);
+//        messageBox = AlertWindow::showScopedAsync (options, nullptr);
+//    }
 //
-//Calibration {
+//    //==============================================================================
+//    Slider rotaryKnob;
+//    OSCSender sender1, sender2;
+//    Label senderLabel { {}, "Sender" };
+//    ScopedMessageBox messageBox;
 //
-//}
+//    JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (OSCSenderDemo)
+//};
 //
-//GirominController {
-//    OscHandler {when that function happens = do something with that data}
-//    Calibration
-//}
-
-
-
-//==============================================================================
+////OSCSender {
+////
+////}
+////
+////OSCReceiever {
+////    some function
+////}
+////
+////OscHandler {
+////    OSCReceiever {passing that function}
+////    OSCSender
+////}
+////
+////Calibration {
+////
+////}
+////
+////GirominController {
+////    OscHandler {when that function happens = do something with that data}
+////    Calibration
+////}
+//
+//
+//
+////==============================================================================
 class OSCReceiverDemo final : public Component,
                               private OSCReceiver,
                               private OSCReceiver::ListenerWithOSCAddress<OSCReceiver::MessageLoopCallback>
@@ -310,11 +310,12 @@ public:
         addAndMakeVisible (rotaryKnob);
 
         // specify here on which UDP port number to receive incoming OSC messages
-        if (! connect (9001))
+        if (! connect (1333))
             showConnectionErrorMessage ("Error: could not connect to UDP port 9001.");
 
         // tell the component to listen for OSC messages matching this address:
-        addListener (this, "/juce/rotaryknob");
+        addListener (this, "/giromin/26/a/x");
+        
     }
 
 private:
@@ -380,6 +381,11 @@ public:
 
         oscLogListBox.setBounds (0, 60, 700, 340);
         addAndMakeVisible (oscLogListBox);
+        if (oscReceiver.connect (currentPortNumber))
+               {
+//                   currentPortNumber = 1333;
+                   connectButton.setButtonText ("Disconnect");
+               }
 
         oscReceiver.addListener (this);
         oscReceiver.registerFormatErrorHandler ([this] (const char* data, int dataSize)
@@ -397,9 +403,34 @@ public:
         giromin_data_[7].address_ = "/giromin/26/b1";
         giromin_data_[8].address_ = "/giromin/26/b2";
         
+        //==============================================================================
+        //==============================================================================
+        
+            addAndMakeVisible (receiverLabel);
+            receiverLabel.attachToComponent (&rotaryKnob, false);
+
+            rotaryKnob.setRange (0.0, 1.0);
+            rotaryKnob.setSliderStyle (Slider::RotaryVerticalDrag);
+            rotaryKnob.setTextBoxStyle (Slider::TextBoxBelow, true, 150, 25);
+            rotaryKnob.setBounds (500, 60, 180, 180);
+            rotaryKnob.setInterceptsMouseClicks (false, false);
+            addAndMakeVisible (rotaryKnob);
+
+            // tell the component to listen for OSC messages matching this address:
+//            addListener (this, "/giromin/26/a/x");
+            
+        
+        //==============================================================================
+        //==============================================================================
+        
         auto midiOutputs = juce::MidiOutput::getAvailableDevices();
         if (!midiOutputs.isEmpty())
         {
+            // Print details of each available MIDI output device
+            for (const auto& midiOutput : midiOutputs)
+            {
+                std::cout << "MIDI Output Device: " << midiOutput.name << " (" << midiOutput.identifier << ")" << std::endl;
+            }
             auto midiOutput = midiOutputs[0];
             midiOutputDevice = juce::MidiOutput::openDevice(midiOutput.identifier);
             if (midiOutputDevice != nullptr)
@@ -451,16 +482,24 @@ public:
 
 private:
     //==============================================================================
+    
+    
     Label portNumberLabel    { {}, "UDP Port Number: " };
     Label portNumberField    { {}, "1333" };
     TextButton connectButton { "Connect" };
     TextButton clearButton   { "Clear" };
     Label connectionStatusLabel;
 
+    int currentPortNumber = 1333;
     OSCLogListBox oscLogListBox;
     OSCReceiver oscReceiver;
+    
+    //==============================================================================
 
-    int currentPortNumber = 1333;
+
+    //==============================================================================
+    Slider rotaryKnob;
+    Label receiverLabel { {}, "Receiver" };
 
     //==============================================================================
     void connectButtonClicked()
@@ -483,8 +522,20 @@ private:
     void oscMessageReceived (const OSCMessage& message) override
     {
         oscLogListBox.addOSCMessage (message);
+        
+        // Define the specific tag you are interested in
+        const juce::String oscTagToDisplay = "/giromin/26/a/y";
+        
+        // Check if the message address matches the specific tag
+        if (message.getAddressPattern().toString() == oscTagToDisplay)
+        {
+            if (message.size() == 1 && message[0].isFloat32())
+            {
+                float value = message[0].getFloat32();
+                rotaryKnob.setValue (jlimit (0.0f, 10.0f, value));
+            }
+        }
     }
-
     void oscBundleReceived (const OSCBundle& bundle) override
     {
         oscLogListBox.addOSCBundle (bundle);
@@ -597,8 +648,8 @@ public:
     OSCDemo()
     {
         addAndMakeVisible (monitor);
-        addAndMakeVisible (receiver);
-        addAndMakeVisible (sender);
+//        addAndMakeVisible (receiver);
+//        addAndMakeVisible (sender);
 
         setSize (700, 400);
     }
@@ -610,15 +661,15 @@ public:
         auto lowerBounds = bounds.removeFromBottom (getHeight() / 2);
         auto halfBounds  = bounds.removeFromRight  (getWidth()  / 2);
 
-        sender  .setBounds (bounds);
-        receiver.setBounds (halfBounds);
-        monitor .setBounds (lowerBounds.removeFromTop (getHeight() / 2));
+//        sender  .setBounds (bounds);
+//        receiver.setBounds (halfBounds);
+        monitor.setBounds (lowerBounds.removeFromTop (getHeight() / 2));
     }
 
 private:
     OSCMonitorDemo  monitor;
-    OSCReceiverDemo receiver;
-    OSCSenderDemo   sender;
+//    OSCReceiverDemo receiver;
+//    OSCSenderDemo   sender;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (OSCDemo)
-};
+};  
