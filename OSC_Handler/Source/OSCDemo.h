@@ -52,9 +52,268 @@
 
 #include <JuceHeader.h>
 
-#define MAX_OSC_MESSAGE_LENGTH 4
-
 using namespace juce;
+
+class GirominData
+{
+public:
+    GirominData()
+    {
+        id_ = 0;
+        is_active_ = false;
+        addr_ = "";
+        
+        for (int i = 0; i < 4; i++)
+        {
+            q_[i] = 0.0f;
+        }
+        
+        for (int i = 0; i < 3; i++)
+        {
+            a_[i] = 0.0f;
+            g_[i] = 0.0f;
+        }
+        
+        for (int i = 0; i < 2; i++)
+            b_[0] = 0.0f;
+    }
+    
+    ~GirominData() {}
+    
+    // SETTERS
+    void setID (int id) { id_ = id; }
+    
+    void setIsActive (bool is_active) { is_active_ = is_active; }
+    
+    void setAX (float value) { a_[0] = value; }
+    void setAY (float value) { a_[1] = value; }
+    void setAZ (float value) { a_[2] = value; }
+    
+    void setGX (float value) { g_[0] = value; }
+    void setGY (float value) { g_[1] = value; }
+    void setGZ (float value) { g_[2] = value; }
+    
+    void setQ1 (float value) { q_[0] = value; }
+    void setQ2 (float value) { q_[1] = value; }
+    void setQ3 (float value) { q_[2] = value; }
+    void setQ4 (float value) { q_[3] = value; }
+    
+    void setB1 (float value) { b_[0] = value; }
+    void setB2 (float value) { b_[1] = value; }
+    
+    // GETTERS
+    float getAX() { return a_[0]; }
+    float getAY() { return a_[1]; }
+    float getAZ() { return a_[2]; }
+    
+    float getGX() { return g_[0]; }
+    float getGY() { return g_[1]; }
+    float getGZ() { return g_[2]; }
+    
+    float getQ1() { return q_[0]; }
+    float getQ2() { return q_[1]; }
+    float getQ3() { return q_[2]; }
+    float getQ4() { return q_[3]; }
+    
+    float getB1() { return b_[0]; }
+    float getB2() { return b_[1]; }
+    
+private:
+    int id_;
+    bool is_active_;
+    std::string addr_;
+    float a_[3];
+    float g_[3];
+    float q_[4];
+    float b_[2];
+};
+
+struct GirominController
+{
+    std::vector<GirominData> giromins_;
+    
+    GirominController()
+    {
+        // TODO: add all giromins
+        
+        // TEMP: add one giromin
+        GirominData g_data;
+        g_data.setID (28);
+        
+        giromins_.push_back (g_data);
+    }
+    
+    // TODO: break out into private methods getID, getParamGroupID, getParam methods
+    void UpdateGiromin (std::string addr, float *values)
+    {
+        size_t start = addr.find ("/", 1);
+        size_t next = addr.find ("/", start + 1);
+        int id = std::stoi (addr.substr (start + 1, next - start - 1)); // ignore warning, read comment below
+        int id_index = 0; // TODO: THIS IS TEMP - find out how many giromins, then: 'id - 25' instead
+        
+        start = next;
+        next = addr.find ("/", start + 1);
+        std::string param_group_id = addr.substr (start + 1, next - start - 1);
+        
+        std::string param;
+        if (next != std::string::npos)
+        {
+            param = addr.substr (next + 1);
+        }
+        
+        switch (param_group_id[0])
+        {
+            case 'a':
+                if (param == "x")
+                    giromins_[id_index].setAX (values[0]);
+                else if (param == "y")
+                    giromins_[id_index].setAY (values[0]);
+                else if (param == "z")
+                    giromins_[id_index].setAZ (values[0]);
+                break;
+            case 'g':
+                if (param == "x")
+                    giromins_[id_index].setGX (values[0]);
+                else if (param == "y")
+                    giromins_[id_index].setGY (values[0]);
+                else if (param == "z")
+                    giromins_[id_index].setGZ (values[0]);
+                break;
+            case 'q':
+                giromins_[id_index].setQ1 (values[0]);
+                giromins_[id_index].setQ2 (values[1]);
+                giromins_[id_index].setQ3 (values[2]);
+                giromins_[id_index].setQ4 (values[3]);
+                break;
+            case 'b':
+                if (param_group_id == "b1")
+                    giromins_[id_index].setB1 (values[0]);
+                else if (param_group_id == "b2")
+                    giromins_[id_index].setB2 (values[0]);
+                break;
+            default:
+                std::cout << "Unknown param_group_id: " << param_group_id << "\n";
+                break;
+        }
+        
+        std::cout << "updated giromin" << std::endl;
+    }
+};
+
+// TODO: in future update OSCHandler to have two sub classes: Receiver, Sender
+class OSCHandler
+:
+private OSCReceiver,
+private OSCReceiver::Listener<OSCReceiver::MessageLoopCallback>
+{
+public:
+    OSCHandler (GirominController &giromin_controller_p)
+    {
+        giromin_controller_p_ = &giromin_controller_p;
+        
+        port_number_ = 1333; // temp - initial port number
+        
+        if (!(connectOSC (port_number_))) // temp - automatic connection
+        {
+            std::cout << "somethings wrong" << std::endl;
+        }
+        else
+        {
+            std::cout << "connected" << std::endl;
+        }
+        
+        for (int i = 0; i < 3; i++)
+        {
+            osc_messages_[i] = 0.0f;
+        }
+        
+        addListener (this); // note: super important
+    }
+    
+    ~OSCHandler() {}
+    
+    void oscMessageReceived (const juce::OSCMessage& message) override {} // pure virtual member must be implemented - not in use
+    
+    void oscBundleReceived (const juce::OSCBundle& bundle) override
+    {
+        time_tag_ = bundle.getTimeTag(); /// NOTE: time_tag_.toTime().toString(true, true, true, true); - to get time string
+        
+        for (auto& element : bundle)
+        {
+            if (element.isMessage())
+            {
+                handleOscMessage (element.getMessage());
+            }
+        }
+    } /// NOTE: only handling OSC bundles from giromin
+    
+    // TODO: UI should handle bad connection error message - update this to return an enum error message for if 1. invalid port number 2. failed to connect to port number
+    bool connectOSC (int port)
+    {
+        if (!isValidOscPort (port)) return false; // validate correct port number
+        
+        port_number_ = port;
+        
+        if (!connect (port_number_)) return false; // validate connection to port - NOTE: checks and connects in same line
+        
+        return true; // assume connection if not returned previously
+    }
+    
+    // TODO: UI should handle disconnect error message
+    bool disconnectOSC()
+    {
+        if (!disconnect()) return false;
+        
+        port_number_ = -1; // set to out of range port number
+        
+        return true;
+    }
+    
+private:
+    void handleOscMessage (const juce::OSCMessage& message)
+    {
+        // assert all messages are float
+        for (int i = 0; i < message.size(); i++)
+        {
+            assert (message[i].isFloat32());
+        }
+        
+        // store messages
+        if (!message.isEmpty())
+        {
+            for (int i = 0; i < message.size(); i++)
+            {
+                osc_messages_[i] = message[i].getFloat32();
+            }
+        }
+        
+        // update giromin
+        giromin_controller_p_->UpdateGiromin (message.getAddressPattern().toString().toStdString(),
+                                              osc_messages_);
+    }
+    
+    bool isValidOscPort (int port) const { return port > 0 && port < 65536; }
+    
+    juce::OSCTimeTag time_tag_;
+    
+    int port_number_;
+    
+    float osc_messages_[4];
+    
+    GirominController *giromin_controller_p_;
+};
+
+class MidiHandler
+{
+public:
+    MidiHandler()
+    {
+        
+    }
+    
+private:
+    std::unique_ptr<juce::MidiOutput> midiOutputDevice;
+};
 
 //==============================================================================
 class OSCLogListBox final : public ListBox,
@@ -66,7 +325,7 @@ public:
     {
         setModel (this);
         
-        osc_messages_.resize(MAX_OSC_MESSAGE_LENGTH);
+        osc_messages_.resize (4);
     }
 
     ~OSCLogListBox() override = default;
@@ -155,9 +414,13 @@ public:
         for (auto& element : bundle)
         {
             if (element.isMessage())
+            {
                 addOSCMessage (element.getMessage(), level + 1);
+            }
             else if (element.isBundle())
+            {
                 addOSCBundle (element.getBundle(), level + 1);
+            }
         }
 
         triggerAsyncUpdate();
@@ -370,7 +633,7 @@ public:
     struct GirominOSCData
     {
         std::string address_ = "";
-        float osc_message_list_[MAX_OSC_MESSAGE_LENGTH];
+        float osc_message_list_[4];
     };
     std::array<GirominOSCData, 9> giromin_data_;
     
@@ -474,7 +737,7 @@ public:
             {
                 if (giromin_data_[i].address_ == address)
                 {
-                    for (int j = 0; j < MAX_OSC_MESSAGE_LENGTH; j++)
+                    for (int j = 0; j < 4; j++)
                     {
                         giromin_data_[i].osc_message_list_[j] = osc_messages[j];
 //                        std::cout << osc_messages[j] << std::endl;
@@ -589,12 +852,13 @@ private:
                 rotaryKnob.setValue (jlimit (-1.0f, 1.0f, value));
             }
         }
+        
+        std::cout << "osc message" << std::endl;
     }
+    
     void oscBundleReceived (const OSCBundle& bundle) override
     {
         oscLogListBox.addOSCBundle (bundle);
-        
-        
     }
 
     //==============================================================================
@@ -699,9 +963,9 @@ private:
 class OSCDemo final : public Component
 {
 public:
-    OSCDemo()
+    OSCDemo() : osc_handler_ (giromin_controller_)
     {
-        addAndMakeVisible (monitor);
+//        addAndMakeVisible (monitor);
 //        addAndMakeVisible (receiver);
 //        addAndMakeVisible (sender);
 
@@ -710,20 +974,23 @@ public:
 
     void resized() override
     {
-        auto bounds = getLocalBounds();
-
-        auto lowerBounds = bounds.removeFromBottom (getHeight() / 2);
-        auto halfBounds  = bounds.removeFromRight  (getWidth()  / 2);
+//        auto bounds = getLocalBounds();
+//
+//        auto lowerBounds = bounds.removeFromBottom (getHeight() / 2);
+//        auto halfBounds  = bounds.removeFromRight  (getWidth()  / 2);
 
 //        sender  .setBounds (bounds);
 //        receiver.setBounds (halfBounds);
-        monitor.setBounds (lowerBounds.removeFromTop (getHeight() / 2));
+//        monitor.setBounds (lowerBounds.removeFromTop (getHeight() / 2));
     }
 
 private:
-    OSCMonitorDemo  monitor;
+//    OSCMonitorDemo  monitor;
 //    OSCReceiverDemo receiver;
 //    OSCSenderDemo   sender;
+    
+    GirominController giromin_controller_;
+    OSCHandler osc_handler_;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (OSCDemo)
 };  
