@@ -99,13 +99,31 @@ public:
     // 
     void addOSCMessage (const OSCMessage& message, int level = 0)
     {
+        String messageBuffer = {};
+        for (int i = 0; i < message.size(); ++i){
+            if (message[i].isFloat32()) {
+                messageBuffer += String(message[i].getFloat32());
+                messageBuffer += " ";
+            }
+            else if (message[i].isInt32()) {
+                messageBuffer += String(message[i].getInt32());
+                messageBuffer += " ";
+            }
+            else if (message[i].isString()) {
+                messageBuffer += String(message[i].getString().toStdString());
+                messageBuffer += " ";
+            }
+            else {
+                messageBuffer += "unknown type";
+            }
+
+        }
         oscLogList.add (getIndentationString (level)
-                        + "- osc message, address = '"
                         + message.getAddressPattern().toString()
-                        + "', "
-                        + String (message.size())
-                        + " argument(s)");
-        
+                        + ": "
+                        + messageBuffer
+                        );
+                        
         // address
         juce::String address = message.getAddressPattern().toString();
         
@@ -406,23 +424,21 @@ public:
         //==============================================================================
         //==============================================================================
         
-            addAndMakeVisible (receiverLabel);
-            receiverLabel.attachToComponent (&rotaryKnob, false);
+        addAndMakeVisible (receiverLabel);
+        receiverLabel.attachToComponent (&rotaryKnob, false);
 
-            rotaryKnob.setRange (0.0, 1.0);
-            rotaryKnob.setSliderStyle (Slider::RotaryVerticalDrag);
-            rotaryKnob.setTextBoxStyle (Slider::TextBoxBelow, true, 150, 25);
-            rotaryKnob.setBounds (500, 60, 180, 180);
-            rotaryKnob.setInterceptsMouseClicks (false, false);
-            addAndMakeVisible (rotaryKnob);
-
-            // tell the component to listen for OSC messages matching this address:
-//            addListener (this, "/giromin/26/a/x");
+        rotaryKnob.setRange (-1.0, 1.0);
+        rotaryKnob.setSliderStyle (Slider::RotaryVerticalDrag);
+        rotaryKnob.setTextBoxStyle (Slider::TextBoxBelow, true, 150, 25);
+        rotaryKnob.setBounds (500, 60, 180, 180);
+        rotaryKnob.setInterceptsMouseClicks (false, false);
+        addAndMakeVisible (rotaryKnob);
             
         
         //==============================================================================
         //==============================================================================
         
+        //Midi Out Setup
         auto midiOutputs = juce::MidiOutput::getAvailableDevices();
         if (!midiOutputs.isEmpty())
         {
@@ -447,10 +463,14 @@ public:
             DBG("No MIDI output devices available.");
         }
         
+        
+        //Gesture Processing Setup
         float filtered = 0;
         
         oscLogListBox.dataCallback = [&] (juce::String address, float* osc_messages)
         {
+            //OSC In Process()
+            
 //            std::cout << address << std::endl;
             for (int i = 0; i < giromin_data_.size(); i++)
             {
@@ -466,15 +486,30 @@ public:
             
 //            juce::MidiMessage midiMessage = juce::MidiMessage::noteOn (1, giromin_data_[0].osc_message_list_[0], (juce::uint8) 127);
             
-            filtered = (1 - 0.9) * giromin_data_[0].osc_message_list_[0] + (0.9 * filtered);
+            //Giromin Controller Process
+            const float accelNormalizationValue = 15.3;
             
-            int midi_trig = std::clamp(static_cast<int>(std::abs((filtered / 15.3) * 16) * 127), 0, 127);
+            float accelData[3] = {
+                giromin_data_[0].osc_message_list_[0],
+                giromin_data_[1].osc_message_list_[0],
+                giromin_data_[2].osc_message_list_[0]
+            };
             
-            std::cout << midi_trig << std::endl;
+            float nomalizedAccelData = accelData[0] / accelNormalizationValue;
             
-            juce::MidiMessage midiMessage = juce::MidiMessage::controllerEvent (1,
-                                                                                1,
-                                                                                midi_trig);
+            //Gesture Processing
+            filtered = EMAFilter(nomalizedAccelData, filtered, 0.9);
+            float gestureVal = scaleAndClamp(filtered, -1.0, 1.0, 0., 1.);
+            gestureVal = accelData[0];
+            
+            //Mapping
+            const int MidiChan = 1;
+            const int MidiCCNumber = 1;
+            int MidiCCValue = static_cast<int>(scaleAndClamp(gestureVal, 0., 1.0, 0, 127));
+//          std::cout << "Input Value: " << accelData[0] << ", Midi Output: " << midi_msg << std::endl;
+            
+            //MIDI Out
+            juce::MidiMessage midiMessage = juce::MidiMessage::controllerEvent (MidiChan, MidiCCNumber, MidiCCValue);
             
             midiOutputDevice->sendMessageNow (midiMessage);
         };
@@ -502,6 +537,27 @@ private:
     Label receiverLabel { {}, "Receiver" };
 
     //==============================================================================
+    float EMAFilter(float inputValue, float filteredValue, float filteringAmount) {
+      return ((1 - filteringAmount) * inputValue) + (filteringAmount * filteredValue);
+    }
+    
+    //==============================================================================
+    float scale(float value, float inMin, float inMax, float outMin, float outMax)
+    {
+        return outMin + (outMax - outMin) * (value - inMin) / (inMax - inMin);
+    }
+    
+    //==============================================================================
+    float scaleAndClamp(float value, float inMin, float inMax, float outMin, float outMax)
+    {
+        // Clamp value to be within the input range
+        if (value < inMin) value = inMin;
+        if (value > inMax) value = inMax;
+
+        return scale(value, inMin, inMax, outMin, outMax);
+    }
+    
+    //==============================================================================
     void connectButtonClicked()
     {
         if (! isConnected())
@@ -524,15 +580,15 @@ private:
         oscLogListBox.addOSCMessage (message);
         
         // Define the specific tag you are interested in
-        const juce::String oscTagToDisplay = "/giromin/26/a/y";
+        const juce::String oscTagToDisplay = "/giromin/26/a/x";
         
         // Check if the message address matches the specific tag
         if (message.getAddressPattern().toString() == oscTagToDisplay)
         {
-            if (message.size() == 1 && message[0].isFloat32())
+            if (message[0].isFloat32())
             {
                 float value = message[0].getFloat32();
-                rotaryKnob.setValue (jlimit (0.0f, 10.0f, value));
+                rotaryKnob.setValue (jlimit (-1.0f, 1.0f, value));
             }
         }
     }
