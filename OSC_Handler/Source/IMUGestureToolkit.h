@@ -10,8 +10,10 @@
 
 #pragma once
 
-struct IMUGestureToolkit
+class IMUGestureToolkit
 {
+public:
+    
     /**
         NOTE: because these methods are 'static', they can be used ANYWHERE in the codebase.
             
@@ -19,6 +21,26 @@ struct IMUGestureToolkit
      
         e.g. float filtered = GirominMathUtils::(in, filtered_val, filtering_amount);
     */
+    
+    enum class ButtonAction {
+        PUSH,           // Output the raw value
+        INVERTED_PUSH,  // Output the opposite value
+        TOGGLE          // Output the toggled value
+    };
+    
+    float processButtonSignal(float input, ButtonAction action) {
+            switch (action) {
+                case ButtonAction::PUSH:
+                    return input;
+                case ButtonAction::INVERTED_PUSH:
+                    return (input == 0.0f) ? 1.0f : 0.0f;
+                case ButtonAction::TOGGLE:
+                    toggle_state_ = (toggle_state_ == 0.0f) ? 1.0f : 0.0f;
+                    return toggle_state_;
+                default:
+                    throw std::invalid_argument("Unknown ButtonAction");
+            }
+        }
     
     // EMA Filter
     static float filterEMA (float inputValue, float filteredValue, float filteringAmount)
@@ -39,4 +61,7 @@ struct IMUGestureToolkit
         if (value > inMax) value = inMax;
         return scale (value, inMin, inMax, outMin, outMax);
     }
+    
+private:
+    float toggle_state_;
 };

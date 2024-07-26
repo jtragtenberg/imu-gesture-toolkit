@@ -14,16 +14,18 @@
 #include "GirominData.h"
 #include "OSCHandler.h"
 #include "MidiHandler.h"
+#include "IMUGestureToolkit.h"
 
 class GirominController
 {
 public:
     GirominController()
     {
-        GirominData g_data;
-        g_data.setID (25);
+//        GirominData g1;
         
-        giromins_.push_back (g_data);
+        
+        giromins_.emplace_back (GirominData());
+        giromins_[0].setID (25);
         
         osc_handler_.oscMessageCallback = [this](std::string addr, float* values)
         {
@@ -31,9 +33,18 @@ public:
             
             // TODO: have a map where a giromin value is with a boolean to check if its active or not. Use this to set what midi not to send
             
-            float giromin_data_value = getGiromin(0)->getAX();
+            for (int i=0; i<giromins_.size(); i++){
+                    //TODO: Go through the recorded mappings table
+            }
             
-            midi_handler_.outputMidiMessage (1, 10, giromin_data_value);
+            float giromin_data_value = getGiromin(0)->getB1();
+            float outputValue = giromin_data_value;
+            if (giromin_data_value != previous_giromin_data_value_) {
+                outputValue = gesture1.processButtonSignal(giromin_data_value, IMUGestureToolkit::ButtonAction::TOGGLE);
+                midi_handler_.outputMidiMessage (1, 10, (int)outputValue);
+                previous_giromin_data_value_ = giromin_data_value;
+            }
+           
             
             std::cout << "should update midi" << std::endl;
         };
@@ -120,6 +131,9 @@ private:
                 break;
         }
     }
+    
+    IMUGestureToolkit gesture1;
+    float previous_giromin_data_value_ = 0;
     
     std::vector<GirominData> giromins_;
     OSCHandler osc_handler_;
