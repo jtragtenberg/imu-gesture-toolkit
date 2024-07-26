@@ -14,7 +14,6 @@ MainComponent::MainComponent()
 //    addAndMakeVisible (rotaryKnob);
     
     // Adding the OSC demo component (contains the auto-connect logic)
-    addAndMakeVisible (oscDemo_);
 }
 
 MainComponent::~MainComponent()
@@ -30,7 +29,6 @@ void MainComponent::paint (juce::Graphics& g)
 void MainComponent::resized()
 {
     rotaryKnob.setBounds(getLocalBounds());
-    oscDemo_.setBounds (getLocalBounds());
 }
 
 void MainComponent::oscBundleReceived (const juce::OSCBundle& bundle)
