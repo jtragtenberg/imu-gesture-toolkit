@@ -2,7 +2,7 @@
 
 #include <JuceHeader.h>
 
-#include "OSCDemo.h"
+#include "GirominController.h"
 
 //==============================================================================
 /*
@@ -34,9 +34,7 @@ private:
 
     juce::Slider rotaryKnob;
     
-    juce::OSCReceiver osc_; // temp
-    
-    OSCDemo oscDemo_;
+    GirominController giromin_controller_;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
 };

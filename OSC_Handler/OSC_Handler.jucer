@@ -4,7 +4,13 @@
               addUsingNamespaceToJuceHeader="0" jucerFormatVersion="1" displaySplashScreen="1">
   <MAINGROUP id="sksfnR" name="OSC_Handler">
     <GROUP id="{FAE42C1F-5033-8EBF-469A-D5887473EBA2}" name="Source">
-      <FILE id="OBR9JV" name="OSCDemo.h" compile="0" resource="0" file="Source/OSCDemo.h"/>
+      <FILE id="CvHS2N" name="IMUGestureToolkit.h" compile="0" resource="0"
+            file="Source/IMUGestureToolkit.h"/>
+      <FILE id="Puabdn" name="MidiHandler.h" compile="0" resource="0" file="Source/MidiHandler.h"/>
+      <FILE id="HiimPr" name="GirominController.h" compile="0" resource="0"
+            file="Source/GirominController.h"/>
+      <FILE id="q51Fk3" name="OSCHandler.h" compile="0" resource="0" file="Source/OSCHandler.h"/>
+      <FILE id="VFvPbV" name="GirominData.h" compile="0" resource="0" file="Source/GirominData.h"/>
       <FILE id="ca9SEM" name="Main.cpp" compile="1" resource="0" file="Source/Main.cpp"/>
       <FILE id="yXnu8h" name="MainComponent.h" compile="0" resource="0" file="Source/MainComponent.h"/>
       <FILE id="zwQWbI" name="MainComponent.cpp" compile="1" resource="0"
