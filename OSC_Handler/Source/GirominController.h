@@ -18,6 +18,9 @@
 
 #define MAX_GIROMINS 6
 
+#define A_NORMALISATION_CONSTANT 0.006535947712     // 1/15.3   - accelerometer in 16g resolution
+#define G_NORMALISATION_CONSTANT 0.02895193978      // 1/34.54  - gyroscope in 500dps resolution
+
 class GirominController
 {
 public:
@@ -54,12 +57,15 @@ public:
                                                 getGiromin(0)->getGZ()};
             
             float rotation_rate =  gesture2.processRotationRate (gyro_data,
-                                                                 IMUGestureToolkit::GyroAxis::X,
-                                                                 IMUGestureToolkit::GyroDirection::BOTH);
+                                                                 IMUGestureToolkit::GyroAxis::MAGNITUDE,
+                                                                 IMUGestureToolkit::GyroDirection::ABSOLUTE,
+                                                                 1.f,
+                                                                 0.1f,
+                                                                 0.999f);
             
 //            std::cout << rotation_rate << std::endl;
             
-//            update_UI (rotation_rate);
+            update_UI (rotation_rate);
             
             //===============================================================================================
             // BUTTON ACTIONS SETUP
@@ -120,29 +126,29 @@ private:
                     case 'a':
                         if (param == "x")
                         {
-                            giromins_[i].setAX (values[0]);
+                            giromins_[i].setAX (values[0] * A_NORMALISATION_CONSTANT);
                         }
                         else if (param == "y")
                         {
-                            giromins_[i].setAY (values[0]);
+                            giromins_[i].setAY (values[0] * A_NORMALISATION_CONSTANT);
                         }
                         else if (param == "z")
                         {
-                            giromins_[i].setAZ (values[0]);
+                            giromins_[i].setAZ (values[0] * A_NORMALISATION_CONSTANT);
                         }
                         break;
                     case 'g':
                         if (param == "x")
                         {
-                            giromins_[i].setGX (values[0]);
+                            giromins_[i].setGX (values[0] * G_NORMALISATION_CONSTANT);
                         }
                         else if (param == "y")
                         {
-                            giromins_[i].setGY (values[0]);
+                            giromins_[i].setGY (values[0] * G_NORMALISATION_CONSTANT);
                         }
                         else if (param == "z")
                         {
-                            giromins_[i].setGZ (values[0]);
+                            giromins_[i].setGZ (values[0] * G_NORMALISATION_CONSTANT);
                         }
                         break;
                     case 'q':

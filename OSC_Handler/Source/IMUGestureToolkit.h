@@ -25,7 +25,7 @@ public:
     // Constructor to initialize default values
     IMUGestureToolkit()
         : toggle_state_(0.0f),
-          last_filtered_value_(0.0f),
+          filtered_value_(0.0f),
           last_raw_value_(0.0f)
     {
     }
@@ -70,7 +70,13 @@ public:
         }
     }
     
-    float processRotationRate(const std::array<float, 3>& gyroData, GyroAxis axis, GyroDirection direction, float gain = 1.0f, float riseFilteringAmount = 0.0f, float fallFilteringAmount = 0.0f) {
+    float processRotationRate (const std::array<float, 3>& gyroData,
+                               GyroAxis axis,
+                               GyroDirection direction,
+                               float gain = 1.0f,
+                               float riseFilteringAmount = 0.0f,
+                               float fallFilteringAmount = 0.0f)
+    {
         float value;
 
         // Select axis or magnitude
@@ -115,11 +121,13 @@ public:
         value *= gain;
 
         // Apply EMA filter if any filteringAmount is set
-        if (riseFilteringAmount > 0.0f || fallFilteringAmount > 0.0f) {
-            value = filterEMATwoWays(value, riseFilteringAmount, fallFilteringAmount);
+        if (riseFilteringAmount > 0.0f || fallFilteringAmount > 0.0f)
+        {
+//            filtered_value_ = filterEMA(value, filtered_value_, fallFilteringAmount);
+            filtered_value_ = filterEMATwoWays (value, filtered_value_, riseFilteringAmount, fallFilteringAmount);
         }
 
-        return value;
+        return filtered_value_;
     }
     
     //Untested, started implemented only
@@ -158,11 +166,23 @@ public:
     }
     
     
-    float filterEMATwoWays(float inputValue, float riseFilteringAmount, float fallFilteringAmount) {
-        float filteringAmount = (inputValue > last_raw_value_) ? riseFilteringAmount : fallFilteringAmount;
-        float filteredValue = filterEMA(inputValue, last_filtered_value_, filteringAmount);
-        last_filtered_value_ = filteredValue;
+    float filterEMATwoWays(float inputValue, float filteredValue, float riseFilteringAmount, float fallFilteringAmount)
+    {
+        float filteringAmount = 0.f;
+        if (inputValue > last_filtered_value_)
+        {
+            filteringAmount = riseFilteringAmount;
+        }
+        else
+        {
+            filteringAmount = fallFilteringAmount;
+        }
+        
+        std::cout << "filteringAmount: " << filteringAmount << std::endl;
+        
+        filteredValue = filterEMA (inputValue, filteredValue, filteringAmount);
         last_raw_value_ = inputValue;
+        last_filtered_value_ = filteredValue;
         return filteredValue;
     }
     
@@ -206,8 +226,9 @@ public:
     
 private:
     float toggle_state_;
-    float last_filtered_value_;
+    float filtered_value_;
     float last_raw_value_;
+    float last_filtered_value_;
     int previous_input_value_;
 
 
