@@ -68,6 +68,8 @@ public:
     float getB1() { return b_[0]; }
     float getB2() { return b_[1]; }
     
+    int getId() { return id_; }
+    
 private:
     int id_;
     // maybe should have its orientation stored in here

@@ -12,9 +12,7 @@
 
 class MainComponent
 :
-public juce::Component,
-private juce::OSCReceiver,
-private juce::OSCReceiver::ListenerWithOSCAddress<juce::OSCReceiver::RealtimeCallback>
+public juce::Component
 {
 public:
     //==============================================================================
@@ -24,9 +22,6 @@ public:
     //==============================================================================
     void paint (juce::Graphics&) override;
     void resized() override;
-    
-    void oscBundleReceived (const juce::OSCBundle& bundle);
-    void oscMessageReceived (const juce::OSCMessage& message) override;
 
 private:
     //==============================================================================

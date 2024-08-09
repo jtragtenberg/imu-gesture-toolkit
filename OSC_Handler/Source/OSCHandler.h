@@ -46,8 +46,12 @@ public:
     // TODO: make work with messages too
     void oscMessageReceived (const juce::OSCMessage& message) override
     {
-        std::cout << "osc should be bundled" << std::endl;
-        jassert (false);
+        //std::cout << message.getAddressPattern().toString() << std::endl;
+        //std::cout << "osc should be bundled" << std::endl;
+//        jassert (false);
+        
+        handleOscMessage (message);
+        
     }
     
     void oscBundleReceived (const juce::OSCBundle& bundle) override
