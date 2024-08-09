@@ -57,7 +57,13 @@ public:
             case ButtonAction::INVERTED_PUSH:
                 return (input == 0.0f) ? 1.0f : 0.0f;
             case ButtonAction::TOGGLE:
-                toggle_state_ = (toggle_state_ == 0.0f) ? 1.0f : 0.0f;
+                
+                
+                
+                if (input == 1.f)
+                {
+                    toggle_state_ = (toggle_state_ == 0.0f) ? 1.0f : 0.0f;
+                }
                 return toggle_state_;
             default:
                 throw std::invalid_argument("Unknown ButtonAction");
@@ -174,7 +180,8 @@ public:
         return scale (value, inMin, inMax, outMin, outMax);
     }
 
-    std::array<float, 4> multiplyQuaternions(const std::array<float, 4>& q1, const std::array<float, 4>& q2) {
+    std::array<float, 4> multiplyQuaternions (const std::array<float, 4>& q1, const std::array<float, 4>& q2)
+    {
         float w = q1[0] * q2[0] - q1[1] * q2[1] - q1[2] * q2[2] - q1[3] * q2[3];
         float x = q1[0] * q2[1] + q1[1] * q2[0] + q1[2] * q2[3] - q1[3] * q2[2];
         float y = q1[0] * q2[2] - q1[1] * q2[3] + q1[2] * q2[0] + q1[3] * q2[1];
@@ -183,11 +190,25 @@ public:
         return {w, x, y, z};
     }
     
+    //On Change Method
+    bool changed (int input_value)
+    {
+        if (input_value != previous_input_value_)
+        {
+            previous_input_value_ = input_value;
+            return (true);
+        }
+        else
+        {
+            return (false);
+        }
+    }
+    
 private:
     float toggle_state_;
     float last_filtered_value_;
     float last_raw_value_;
-
+    int previous_input_value_;
 
 
 };

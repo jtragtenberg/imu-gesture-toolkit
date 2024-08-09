@@ -16,37 +16,73 @@
 #include "MidiHandler.h"
 #include "IMUGestureToolkit.h"
 
+#define MAX_GIROMINS 6
+
 class GirominController
 {
 public:
+    
+    std::function<void(float)> update_UI;
+    
     GirominController()
     {
 //        GirominData g1;
         
+        for (int i = 0; i < MAX_GIROMINS; i++)
+        {
+            giromins_.emplace_back (GirominData());
+        }
+        giromins_[0].setID (23);
         
-        giromins_.emplace_back (GirominData());
-        giromins_[0].setID (25);
+        //GirominData view_data;
         
         osc_handler_.oscMessageCallback = [this](std::string addr, float* values)
         {
             UpdateGiromin (addr, values);
             
-            // TODO: have a map where a giromin value is with a boolean to check if its active or not. Use this to set what midi not to send
-            
+            /*
             for (int i=0; i<giromins_.size(); i++){
-                    //TODO: Go through the recorded mappings table
+                //TODO: Go through the recorded mappings table
             }
+            */
             
+            //===============================================================================================
+            // ROTATION RATE
+            //===============================================================================================
+            std::array<float, 3> gyro_data = {getGiromin(0)->getGX(),
+                                                getGiromin(0)->getGY(),
+                                                getGiromin(0)->getGZ()};
+            
+            float rotation_rate =  gesture2.processRotationRate (gyro_data,
+                                                                 IMUGestureToolkit::GyroAxis::X,
+                                                                 IMUGestureToolkit::GyroDirection::BOTH);
+            
+//            std::cout << rotation_rate << std::endl;
+            
+//            update_UI (rotation_rate);
+            
+            //===============================================================================================
+            // BUTTON ACTIONS SETUP
+            //===============================================================================================
             float giromin_data_value = getGiromin(0)->getB1();
-            float outputValue = giromin_data_value;
-            if (giromin_data_value != previous_giromin_data_value_) {
-                outputValue = gesture1.processButtonSignal(giromin_data_value, IMUGestureToolkit::ButtonAction::TOGGLE);
-                midi_handler_.outputMidiMessage (1, 10, (int)outputValue);
+            
+            if (giromin_data_value != previous_giromin_data_value_)
+            {
+                float output_value = gesture1.processButtonSignal (giromin_data_value,
+                                                                   IMUGestureToolkit::ButtonAction::TOGGLE);
+                
+                if (gesture1.changed (static_cast<int>(output_value)))
+                {
+                    std::cout << "giromin_data_value: " << output_value << std::endl;
+                    
+                    // OUTPUT MIDI
+                    midi_handler_.outputMidiMessage (1, 10, (int)output_value);
+                }
+                
                 previous_giromin_data_value_ = giromin_data_value;
             }
-           
             
-            std::cout << "should update midi" << std::endl;
+            //===============================================================================================
         };
     }
     
@@ -66,74 +102,76 @@ private:
         // TODO: add a condition to check for 'giromin' - could be a different address.
         const char* start = strchr (addr.c_str() + 1, '/');
         const char* next = strchr (start + 1, '/');
-        int id = std::atoi (std::string (start + 1, next).c_str());
+        int address_id = std::atoi (std::string (start + 1, next).c_str());
         
-        // TODO: use g_data.getID(); instead and compare
-        int id_index = 0; // TODO: THIS IS TEMP - REMOVE and use giromin ID
-        
-        start = next;
-        next = strchr (start + 1, '/');
-        std::string param_group_id (start + 1, next ? next - start - 1 : strlen (start + 1));
-        std::string param;
-        
-        if (next) { param = next + 1; }
-        
-        switch (param_group_id[0])
+        for (int i = 0; i < MAX_GIROMINS; i ++)
         {
-            case 'a':
-                if (param == "x")
+            if (giromins_[i].getId() == address_id)
+            {
+                start = next;
+                next = strchr (start + 1, '/');
+                std::string param_group_id (start + 1, next ? next - start - 1 : strlen (start + 1));
+                std::string param;
+                
+                if (next) { param = next + 1; }
+                
+                switch (param_group_id[0])
                 {
-                    giromins_[id_index].setAX (values[0]);
-                    std::cout << addr << std::endl;
-                    std::cout << values[0] << std::endl;
+                    case 'a':
+                        if (param == "x")
+                        {
+                            giromins_[i].setAX (values[0]);
+                        }
+                        else if (param == "y")
+                        {
+                            giromins_[i].setAY (values[0]);
+                        }
+                        else if (param == "z")
+                        {
+                            giromins_[i].setAZ (values[0]);
+                        }
+                        break;
+                    case 'g':
+                        if (param == "x")
+                        {
+                            giromins_[i].setGX (values[0]);
+                        }
+                        else if (param == "y")
+                        {
+                            giromins_[i].setGY (values[0]);
+                        }
+                        else if (param == "z")
+                        {
+                            giromins_[i].setGZ (values[0]);
+                        }
+                        break;
+                    case 'q':
+                        giromins_[i].setQ1 (values[0]);
+                        giromins_[i].setQ2 (values[1]);
+                        giromins_[i].setQ3 (values[2]);
+                        giromins_[i].setQ4 (values[3]);
+                        break;
+                    case 'b':
+                        if (param_group_id == "b1")
+                        {
+                            giromins_[i].setB1 (values[0]);
+                        }
+                        else if (param_group_id == "b2")
+                        {
+                            giromins_[i].setB2 (values[0]);
+                        }
+                        break;
+                    default:
+                        std::cout << "unknown param_group_id: " << param_group_id << "\n";
+                        break;
                 }
-                else if (param == "y")
-                {
-                    giromins_[id_index].setAY (values[0]);
-                }
-                else if (param == "z")
-                {
-                    giromins_[id_index].setAZ (values[0]);
-                }
-                break;
-            case 'g':
-                if (param == "x")
-                {
-                    giromins_[id_index].setGX (values[0]);
-                }
-                else if (param == "y")
-                {
-                    giromins_[id_index].setGY (values[0]);
-                }
-                else if (param == "z")
-                {
-                    giromins_[id_index].setGZ (values[0]);
-                }
-                break;
-            case 'q':
-                giromins_[id_index].setQ1 (values[0]);
-                giromins_[id_index].setQ2 (values[1]);
-                giromins_[id_index].setQ3 (values[2]);
-                giromins_[id_index].setQ4 (values[3]);
-                break;
-            case 'b':
-                if (param_group_id == "b1")
-                {
-                    giromins_[id_index].setB1 (values[0]);
-                }
-                else if (param_group_id == "b2")
-                {
-                    giromins_[id_index].setB2 (values[0]);
-                }
-                break;
-            default:
-                std::cout << "unknown param_group_id: " << param_group_id << "\n";
-                break;
+            }
         }
     }
     
-    IMUGestureToolkit gesture1;
+    IMUGestureToolkit gesture1, gesture2;
     float previous_giromin_data_value_ = 0;
+    float previous_giromin_output_value_ = 0;
     
     std::vector<GirominData> giromins_;
     OSCHandler osc_handler_;
