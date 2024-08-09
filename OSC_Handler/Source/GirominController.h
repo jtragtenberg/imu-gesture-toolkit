@@ -27,6 +27,8 @@ public:
     
     std::function<void(float)> update_UI;
     
+    std::function<void(std::array<float, 3>)> update_euler_UI;
+    
     GirominController()
     {
 //        GirominData g1;
@@ -66,6 +68,26 @@ public:
 //            std::cout << rotation_rate << std::endl;
             
             update_UI (rotation_rate);
+            
+            //===============================================================================================
+            // QUATERNIONS to EULER
+            //===============================================================================================
+            
+            std::array<float, 4> quaternions = {getGiromin(0)->getQ1(),
+                                                getGiromin(0)->getQ2(),
+                                                getGiromin(0)->getQ3(),
+                                                getGiromin(0)->getQ4()};
+            
+            std::array<float, 3> euler_angels = gesture3.convertQuaternionToEuler (quaternions[0],
+                                                                                   quaternions[1],
+                                                                                   quaternions[2],
+                                                                                   quaternions[3]);
+            
+            std::cout << "euler_angels[0]: " << euler_angels[0] << std::endl;
+            std::cout << "euler_angels[1]: " << euler_angels[1] << std::endl;
+            std::cout << "euler_angels[2]: " << euler_angels[2] << std::endl;
+            
+            update_euler_UI (euler_angels);
             
             //===============================================================================================
             // BUTTON ACTIONS SETUP
@@ -175,7 +197,7 @@ private:
         }
     }
     
-    IMUGestureToolkit gesture1, gesture2;
+    IMUGestureToolkit gesture1, gesture2, gesture3;
     float previous_giromin_data_value_ = 0;
     float previous_giromin_output_value_ = 0;
     

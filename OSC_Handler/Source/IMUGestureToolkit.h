@@ -143,6 +143,7 @@ public:
             float neutral_q1 = 0.0f;
             float neutral_q2 = 0.0f;
             float neutral_q3 = 1.0f;
+            // 0.0707107f
 
             // Multiplicar o quaternion de entrada pelo quaternion neutro
             std::array<float, 4> resultQuat = multiplyQuaternions({q0_, q1_, q2_, q3_}, {neutral_q0, neutral_q1, neutral_q2, neutral_q3});

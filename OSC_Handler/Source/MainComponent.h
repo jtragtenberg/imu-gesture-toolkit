@@ -29,6 +29,8 @@ private:
 
     juce::Slider rotaryKnob;
     
+    std::array<juce::Slider, 3> eulerKnobs;
+    
     GirominController giromin_controller_;
 
     JUCE_DECLARE_NON_COPYABLE_WITH_LEAK_DETECTOR (MainComponent)
